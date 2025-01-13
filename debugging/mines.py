@@ -12,12 +12,12 @@ class Minesweeper:
         self.mines = set(random.sample(range(width * height), mines))
         self.field = [[' ' for _ in range(width)] for _ in range(height)]
         self.revealed = [[False for _ in range(width)] for _ in range(height)]
-        self.total_cells = width * height
-        self.revealed_cells = 0  # Compteur des cellules révélées
+        self.total_safe_squares = width * height - mines
+        self.revealed_safe_squares = 0
 
     def print_board(self, reveal=False):
         clear_screen()
-        print('  ' + ' '.join(str(i) for i in range(self.width)))
+        print('   ' + ' '.join(str(i) for i in range(self.width)))
         for y in range(self.height):
             print(y, end=' ')
             for x in range(self.width):
@@ -35,6 +35,8 @@ class Minesweeper:
         count = 0
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
+                if dx == 0 and dy == 0:  # Skip the current cell
+                    continue
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < self.width and 0 <= ny < self.height:
                     if (ny * self.width + nx) in self.mines:
@@ -42,14 +44,13 @@ class Minesweeper:
         return count
 
     def reveal(self, x, y):
-        if self.revealed[y][x]:
-            return True  # Ignore les cellules déjà révélées
-
         if (y * self.width + x) in self.mines:
             return False
+        if self.revealed[y][x]:  # Avoiding unnecessary work
+            return True
 
         self.revealed[y][x] = True
-        self.revealed_cells += 1  # Incrémente le compteur de cellules révélées
+        self.revealed_safe_squares += 1
 
         if self.count_mines_nearby(x, y) == 0:
             for dx in [-1, 0, 1]:
@@ -59,18 +60,15 @@ class Minesweeper:
                         self.reveal(nx, ny)
         return True
 
-    def check_win(self):
-        # Une victoire se produit si les cellules révélées correspondent aux cellules non-minées
-        return self.revealed_cells == self.total_cells - len(self.mines)
-
     def play(self):
         while True:
             self.print_board()
             try:
                 x = int(input("Enter x coordinate: "))
                 y = int(input("Enter y coordinate: "))
+
                 if not (0 <= x < self.width and 0 <= y < self.height):
-                    print("Coordinates out of bounds. Try again.")
+                    print("Coordinates out of bounds. Please try again.")
                     continue
 
                 if not self.reveal(x, y):
@@ -78,12 +76,14 @@ class Minesweeper:
                     print("Game Over! You hit a mine.")
                     break
 
-                if self.check_win():
+                if self.revealed_safe_squares == self.total_safe_squares:
                     self.print_board(reveal=True)
-                    print("Congratulations! You've won the game.")
+                    print("Congratulations! You revealed all safe squares.")
                     break
             except ValueError:
                 print("Invalid input. Please enter numbers only.")
+            except Exception as e:
+                print(f"An unexpected error occurred: {e}")
 
 if __name__ == "__main__":
     game = Minesweeper()
